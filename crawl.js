@@ -1,5 +1,30 @@
 const {JSDOM} = require('jsdom');
 
+
+async function crawlPage(currentURL){
+    console.log(`Actively Crawling : ${currentURL}`);
+
+    try{
+        const resp = await fetch(currentURL);
+
+        if(resp.status > 399){
+            console.log(`Error in Fetch with status code : ${resp.status} on page: ${currentURL}`);
+            return;
+        }
+        console.log(await resp.text());
+
+        const contentType = resp.headers.get("content-type")
+
+        if(!contentType.includes("text/html")){
+            console.log(`Non Html Response: ${contentType} on page: ${currentURL}`);
+            return;
+        }
+        
+    } catch(err){
+        console.log(`Error in Fetch: ${err.message}, On page: ${currentURL}`);
+    }
+    
+}
 function normalizeURL(urlString){  // sometimes different different urls point to the same page. so we take urls strings to point one single string url
     const urlObj = new URL(urlString);
     const hostPath = `${urlObj.hostname}${urlObj.pathname}`;
@@ -40,5 +65,6 @@ function getUrlsFromHTML(htmlBody, baseURL){
 
 module.exports = {
     normalizeURL,
-    getUrlsFromHTML
+    getUrlsFromHTML,
+    crawlPage
 }
