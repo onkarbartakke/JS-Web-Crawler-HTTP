@@ -1,9 +1,25 @@
 const {JSDOM} = require('jsdom');
 
 
-async function crawlPage(currentURL){
-    console.log(`Actively Crawling : ${currentURL}`);
+async function crawlPage(baseURL, currentURL, pages){
+   
 
+    const baseURLObj = new URL(baseURL);
+    const currentURLObj = new URL(currentURL);
+
+    if(baseURLObj.hostname !== currentURLObj.hostname){
+        return pages;
+    }
+
+    const normalizedCurrentUrl = normalizeURL(currentURL);
+    
+    if(pages[normalizedCurrentUrl] > 0){
+        pages[normalizedCurrentUrl]++;
+        return pages;
+    }
+
+    pages[normalizedCurrentUrl] = 1;
+    console.log(`Actively Crawling : ${currentURL}`);
     try{
         const resp = await fetch(currentURL);
 
@@ -11,19 +27,26 @@ async function crawlPage(currentURL){
             console.log(`Error in Fetch with status code : ${resp.status} on page: ${currentURL}`);
             return;
         }
-        console.log(await resp.text());
-
+       
         const contentType = resp.headers.get("content-type")
 
         if(!contentType.includes("text/html")){
             console.log(`Non Html Response: ${contentType} on page: ${currentURL}`);
-            return;
+            return pages;
+        }
+
+        const htmlBody = await resp.text();
+        nextUrls = getUrlsFromHTML(htmlBody,baseURL);
+
+        for(const nextUrl of nextUrls){
+            pages = await crawlPage(baseURL, nextUrl,pages);   
         }
         
     } catch(err){
         console.log(`Error in Fetch: ${err.message}, On page: ${currentURL}`);
     }
     
+    return pages;
 }
 function normalizeURL(urlString){  // sometimes different different urls point to the same page. so we take urls strings to point one single string url
     const urlObj = new URL(urlString);
